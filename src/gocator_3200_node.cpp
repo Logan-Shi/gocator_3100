@@ -25,7 +25,6 @@ Gocator3200Node::Gocator3200Node() :
 //     run_mode_(SNAPSHOT),
 //     g3200_camera_("192.168.1.10"), 
     save_request(new int),
-    viewer(new pcl::visualization::PCLVisualizer("Saver")),
     nh_(ros::this_node::getName()),
     is_request_(false)
 {      
@@ -97,18 +96,19 @@ void Gocator3200Node::publish()
     if ( g3200_camera_->getSingleSnapshot(*cloud) == 1 )
     //if ( g3200_camera_.getSingleSnapshotFake(cloud_) == 1 )
     {
-        pcl::visualization::PointCloudColorHandlerCustom<PointT> cloud_in_color_h (cloud, (int) 255, (int) 255, (int) 255);
+        // pcl::visualization::PointCloudColorHandlerCustom<PointT> cloud_in_color_h (cloud, (int) 255, (int) 255, (int) 255);
     
-        // Original point cloud is white
-        viewer->addPointCloud (cloud,cloud_in_color_h,"cloud_in_v1");
-        viewer->addCoordinateSystem(10);
+        // // Original point cloud is white
+        // viewer.addPointCloud (cloud,cloud_in_color_h,"cloud_in_v1");
+        // viewer.addCoordinateSystem(10);
 
         ts = ros::Time::now();
         cloud->header.stamp = (pcl::uint64_t)(ts.toSec()*1e6); //TODO: should be set by the Gocator3200::Device class
         cloud->header.frame_id = frame_name_; 
         snapshot_publisher_.publish(*cloud);
 
-        viewer->removeAllPointClouds ();
+        // viewer.removeAllPointClouds ();
+        // viewer.close();
     }
     else
     {
@@ -156,22 +156,22 @@ void Gocator3200Node::saveShot()
 {
     *save_request = WAIT;
     ros::Time ts;
-    bool is_quit = false;
     PointCloudT::Ptr cloud_tmp (new PointCloudT);
     //Get snapshot from camera and publish the point cloud
     std::cout<<"ready to capture\n";
     if ( g3200_camera_->getSingleSnapshot(*cloud_tmp) == 1 )
     //if ( g3200_camera_.getSingleSnapshotFake(cloud_) == 1 )
     {   
+        pcl::visualization::PCLVisualizer viewer ("Saver");
         pcl::visualization::PointCloudColorHandlerCustom<PointT> cloud_in_color_h (cloud_tmp, (int) 255, (int) 255, (int) 255);
-    
+        
         // Original point cloud is white
-        viewer->addPointCloud (cloud_tmp,cloud_in_color_h,"cloud_in_v1");
-        viewer->addCoordinateSystem(10);
+        viewer.addPointCloud (cloud_tmp,cloud_in_color_h,"cloud_in_v1");
+        viewer.addCoordinateSystem(10);
         // Register keyboard callback :
-        viewer->registerKeyboardCallback (&keyboardEventOccurred, (void*) &save_request);
+        viewer.registerKeyboardCallback (&keyboardEventOccurred, (void*) &save_request);
 
-        while (!is_quit)
+        while (!viewer.wasStopped())
         {
             switch(*save_request)
             {
@@ -192,23 +192,23 @@ void Gocator3200Node::saveShot()
                         std::cout<<file_name<<" saved successflly!\n";
                         capture_counter_++;
                         *save_request = WAIT;
-                        is_quit = true;
+                        viewer.removeAllPointClouds ();
+                        viewer.close();
                     }
                     break;
                 }
 
                 case DISCARD:
                     std::cout<<"result is discarded\n";
-                    is_quit = true;
+                    viewer.close();
                     break;
 
                 default:
                     break;
             }
-            viewer->spinOnce (100);
+            viewer.spinOnce (100);
         }
         std::cout<<"out of loop\n";
-        viewer->removeAllPointClouds ();
     }
     else
     {
