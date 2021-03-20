@@ -111,8 +111,6 @@ class Gocator3200Node
 
         boost::shared_ptr<int> save_request;
 
-        boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
-
     protected: 
         //snapshot request callback
         void snapshotRequestCallback(const std_msgs::Empty::ConstPtr& _msg);
